@@ -1,0 +1,73 @@
+
+												Day - 02 ( only theory )
+											=============
+											
+	https://github.com/iam-veeramalla/terraform-zero-to-hero/tree/main/Day-2
+											
+--> provider is nothing but plugin that helps terraform to understand where it has to create infrastructure it acts as a medium to terraform
+	
+	official, partner, community provider categories in hashicorp terraform 
+	official means mainitain by hashicorp
+	partner means maintained by cloud providers they develop to write modules to connect and creates on their cloud
+	community means you and me also develop an opensource modules to connect with terraform
+	
+	creating aws infrastructure on muliple regions and multi cloud ( companies are using hybrid cloud )
+	
+	refer below link documentation nobody remeber the syntax to write in realtime as well but we can unstand rough structure for interview
+	
+	https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_machine
+	
+	
+	provider "aws" {
+  alias = "us-east-1"
+  region = "us-east-1"
+}
+
+provider "aws" {
+  alias = "us-west-2"
+  region = "us-west-2"
+}
+
+resource "aws_instance" "example" {
+  ami = "ami-0123456789abcdef0"
+  instance_type = "t2.micro"
+  provider = "aws.us-east-1"
+}
+
+resource "aws_instance" "example2" {
+  ami = "ami-0123456789abcdef0"
+  instance_type = "t2.micro"
+  provider = "aws.us-west-2"
+}
+
+----------------------------------------------------------------------------
+
+variables:
+
+ we have already one terraform file to create resources with hardcoding, after any other team can take charge for using this file to create or modify resources but with hardcoding we need to modify entire file, to solve this problem we can write variables so that any other team just change the values of variables to create resources
+
+in terraform 2 types o variables :
+
+input variables: 
+output variables :
+
+to see example for creating input and output variables
+
+https://github.com/iam-veeramalla/terraform-zero-to-hero/blob/main/Day-2/06-variables-implementation.tf
+
+we can divide the main.tf  into provider.tf, input.tf, output.tf, main.tf, terraform.tfvars etc ( we cannot write all in main.tf file )
+
+
+tfvars: values passed to variable that were created in input.tf etc
+
+	https://github.com/iam-veeramalla/terraform-zero-to-hero/blob/main/Day-2/07-tfvars.md
+
+dev, staging, prod ( just we can change terraform.tfvars file for environment specific )
+dev.tfvars ..........
+
+when we execute terraform apply bydefault terraform look into terraform.tfvars file and replace the values to variables 
+
+
+
+
+

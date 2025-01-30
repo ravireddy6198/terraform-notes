@@ -1,0 +1,74 @@
+
+
+													Terraform - 01 ( session - 23 )
+												--------------------------------------
+
+
+Improvements
+=============
+Ansible vault to SSM paramter/secret integration with Ansible
+IAM Users migration to IAM Roles -->
+
+Terraform:
+------------------
+
+shell, ansible, terraform,sql, perl, customised scriptings
+1. syntax --> variables, data types, conditions, functions and loops, error handling
+2. process understanding ( ec2 creation, s3 bucket creation etc through console )
+
+CRUD --> Ansible is failed to manage the infrastrucutre. For example if some manual edits happen ansible can't recognise those. It creates duplicate resources. So ansible is not perfect in state management ( instructions in ansible state file is called statement ) so terraform to solve these problems like update and delete resources
+
+what for Ansible --> with in the server, Ansible is perfect, for cloud infra ansible is poor choice
+
+Manual infra disadvantages :
+===============================
+1. time
+2. human errors
+3. cost
+4. reusable effort
+5. don't know who did mistake
+6. modifications are not easy
+7. not scalable
+
+IaaC --> Infra as a code
+
+advantages :
+-----------------------
+version control --> tracking , you can version control your infra. expense-infra-1.0 expense-infra-2.0 ( how much cost increase by using resorces )
+restore if something goes wrong --> easy to restore if something goes wrong( through console any one overwrite anything like issues )
+Consistent infra --> you can create same infra across all environments ( through main.tf files )
+Inventory management --> you can understand the resources by seeing terraform files ( just by seeing terrafrm file to understand what resources in aws )
+dependency management --> terraform can understand the dependency between resources. First it will create dependencies like sg and key pairs etc and then actual resources
+code reusability --> terraform modules, you can create similar infra for any number of projects using modules (like roles and functions in ansible)
+Cost --> automation of CRUD --> we can save costs( terraform apply and terraform destory resources after usage completion to save cost and time )
+state management
+declarative --> easy syntax (in tf file HCL language syntax )
+Git --> you can review code before apply through github
+
+terraform installation on windows
+
+ansible by using linux server to automatate configurations ( here linux server required)
+by using terraform through laptop (local machine) create infra or resources in aws ( here linux server not required)
+
+generally roles are applied for aws resources
+
+for authentication aws cli required to connect aws from local
+create IAM user and give access key and secret key to authenticate by using aws configure command from local
+
+ansible modules --> ec2instance, github etc
+terraform providers --> provider means, a system which terraform can connect and create resources
+
+	terraform aws provider
+	
+terraform file extensions are .tf
+terraform uses HCL --> Hashicorp configuration language
+
+resource "type-of-resource" "name-of-resource" {
+	your-parameters
+}
+
+resource "aws_instance" "this" {
+
+}
+
+terraform init

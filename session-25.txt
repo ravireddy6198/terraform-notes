@@ -1,0 +1,134 @@
+
+
+												Session - 25 
+											======================
+By using data
+ami_id getting in output from datasource
+vpc_id getting in output from datasource
+locals variable creation
+state management ( terraform.tfstae)
+bucket creation for tfstate file
+configure with dynamo db for locking 
+remote backend with s3 and dynamo DB
+
+
+datasource:
+------------
+runtime lo dynamic ga techukovadam
+data source are used to query existing information from the provider
+whenver any update happened in devops-practice ami tha ami-id will be changed ( for any resources in aws updates happens id changed)
+
+for every resource in aws we have a datasource
+resource means creation of resource
+data means getting the info from existing resource ( read the info)
+
+data "type" "name" {
+
+}
+
+--> every region have one default vpc
+
+outblocks are used to print the info , it will be used in module development too
+
+locals :locals are used to run the expressions or function  and save the results to variables
+---------
+it will increase the readabilty of tf file for example
+
+locals {
+   ami_id = data.aws_ami.joindevops.id
+}
+
+ ami_id = data.aws_ami.joindevops.id ( this is long and difficult to understand just give local.ami_id )
+ 
+no one override the local variables if some one wants to override the variable through tfvars or commandline insted of existiing variables this may cause high cost resources created ( like t3.xlarge instead of t3.micro)
+
+local can store expressions, variables cannot
+locals cannot be overriden but variables can overriden
+variables can't refer other variables, locals can refer other locals variables
+locals are used to store expressions it can even store simple key value pairs just like variables
+
+state management:
+------------------
+
+ansible only create the resources but cannot update or delete the resources because of the state
+declared configuration/ desired : .tf files whatever user write in tf files, that is what user wants
+actual infra --> what terraform creating in provider
+
+desired infra --> actual infra
+
+terraform.tfstate : it is a file terraform creates to know what it is created this is actual infra created by terraform
+some one changed the name of ec2 manually inside console
+
+when we do terraform plan or terraform apply
+
+terraform reads state file and then compare that with actual infra using provider
+
+terraform responsibility is matched the desired infre with actual infrastructue if some one chanes the infreoutside of terraform ( console ) terraformcan detectby comparing the statefile with actual infra and give us the changes
+
+when we do terraform apply again changes will be reverted instead of manual changes this is why easy to restore with terraform if something goes wrong for some manual changes are happened
+
+if we want any changes required we can do through terraform only
+
+terraform avoids the manual changes created in console
+
+always terraform.tfstatee compared with tf files 
+
+terraform.tfstate -->expense-dev-backend
+compared with tf files --> expense-dev-backend-changed   ( name will be changed  and update the file with given name  in tf files )
+
+terraform responsibility is to create the infrastructure in tf files terraform always matched desired infra with actual infra terraform uses state file for comparison terraform keeps track ofwhat it created in the state file if someone changes the infrastructure outside of terraform for compare with terraform state file and actual infra and it will revert the changes
+
+if you update few parameters resources will not be created again it will just updatebut few paramenets if you update, we are forced to recreate resources
+
+ex : security group name cannot manually changes when we can change through terraform in tf files , terraform can create the instance from the scratch like security group creation why beacuse through manually we cannot change the sg name
+
+whatever the changes happened with edit option in console , those changes will be updated in tfstate file and terraform will not recreate the sg
+but when we dont have any edit parameter option exist through console terraform will recreate from scratch by taking the values from tf files
+
+tfstate file is only for terraform reference dont do any manual changes happened
+tfstate file is very importaant file we need to secure it 
+
+so tfste file needs to push to github
+
+clone terraform repo and we do terraform apply there will be a possibility of duplicate resources created or some errors occured
+
+so we can secure the state file and it is placed in the central ( github )
+
+when we placed the stetfile in central place all terraform developers wants to do terraform apply, first terraform reads the state file placed in central place and understand whether the all resources created already or not if not created by terraform
+
+in collaboration environement we must maintain state file remotely
+
+if two developers did terraform apply at same time there will be chance of duplicate records and errors for that locking is also important, so that we can prevent parallel executions, terraform has that nature when do during terraform apply or destory we cannot see the tf state file because of that .terraform.lock.hcl file
+
+we cannot placed the tfstate file in locally we must place the terraform file in remote like aws s3 bucket
+
+
+creating one s3 bucket
+create table in dynamo db
+ 
+ LockID
+ 
+ terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "5.84.0"
+    }
+  }
+
+  backend "s3" {
+    bucket = "hit-aws82s-remote-state"
+    key    = "ec2-demo"  # it should have unique keys with in the bucketsame key should not be used in other bucket or repos or tf projects  it created a file under that bucket and state is stored under that file dont give that ec2-demo name in another project because state of that file will be changed 
+    region = "us-east-1"
+	dynamodb_table = "82-state-locking"
+  }
+}
+
+
+here key must be unique because another project when we use same name ec2-demo another project modifies the state of that file
+same key should not be used in other bucket or repos
+
+bucket permission are strict to that project only
+we can maintain one bucket for one project 
+
+why state file placed in in remote means state should be managed centrallyso tht we can avoid duplicates and errors and it should be locked to prevent it from parallel execution
