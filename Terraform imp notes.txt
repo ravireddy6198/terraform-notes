@@ -1,0 +1,62 @@
+terraform init
+terraform validate
+terraform apply
+terraform apply -auto-approve
+terraform fmt
+terraform show
+terraform destroy
+terraform plan -var "instance_type=t3.small"
+terraform show
+
+
+terraform init -migrate-state :
+---------------------------------
+
+This command will try to automatically migrate your existing Terraform state to the new backend configuration. If there has been a change to how the state is stored (for example, a switch to a different storage location or format), this command will try to move the state to match the new configuration without losing any of the existing data.
+
+Initializing the backend...
+Terraform has detected you're unconfiguring your previously set "s3" backend.
+
+
+Successfully unset the backend "s3". Terraform will now operate locally.
+Initializing provider plugins...
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Using previously-installed hashicorp/aws v5.84.0
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+
+
+
+terraform init -reconfigure:
+-------------------------------------
+
+This command will reinitialize Terraform, but without attempting to migrate the state. Instead, it will use the new backend configuration but will leave the state as-is. Essentially, it will configure Terraform to use the new backend settings but won’t change the current state file.
+
+In summary:
+
+-migrate-state: Tries to move and update the existing state according to the new backend config.
+-reconfigure: Reinitializes the backend configuration but keeps the existing state unchanged
+
+
+A change in the backend configuration has been detected, which may require migrating existing state.
+│
+│ If you wish to attempt automatic migration of the state, use "terraform init -migrate-state".
+│ If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".
+
+resource "aws_instance" "first" {  #here aws_instance.first is self
+--------------------------------------------------------------------------------
+
+--> How do you override default variable values in terraform ?
+
+--> what are commands used in terraform ?
+--> How do you override default variable values in terraform ?
+--> locls vs variables in terraform ?
+--> what is state in teraform ?

@@ -1,0 +1,141 @@
+
+
+														session - 26
+													======================
+					
+
+
+dynamic blocks
+for_each loop
+provisioners
+multiple stage environments using terraform
+
+
+
+
+
+
+					
+													
+dynamic blocks
+================
+loops are used to create multiple resources.
+dynamic blocks are used to create multiple blocks inside a resource..
+
+count based loops or for each loops are create multiple resources , dynamic blocks are used to create multiple blocks
+this is a block for example
+ingress {
+    from_port   = var.from_port
+    to_port     = var.to_port
+    protocol    = "tcp"
+    cidr_blocks = var.cide_blocks
+
+  }
+  
+  whenn we want multiple ingress ports required we have to mention dynamic blocks by usinf for_each loop
+
+for_each loops
+===============
+1. count based loop --> use it to iterate lists
+2. for each loop --> use it to iterate maps
+3. dynamic blocks
+
+mysql --> t3.small
+backend --> t3.micro
+frontend --> t3.micro
+
+variable "intances" {
+    default = {
+        mysql = "t3.micro"
+        frontend = "t2.micro"
+        backend= "t2.micro"
+    }
+}
+
+resource "aws_instance" "first" {
+  for_each = var.intances    # # terraform will give us a variable called each
+
+--> here for_each loop creates 3 instances based on above code
+
+# terraform will give us a variable called each when we applied the for_each loop
+
+requirement using for_each:
+-----------------------------------
+
+mysql -> mysql.daws82s.online --> privateip
+backend --> backend.daws82s.online --> privateip
+frontend --> daws82s.online --> public ip
+
+provisioners
+===============
+
+provisioners are used to take actions either in local machine or remote machine we have two types of provisioners one is local_exec and another is remote_exec ,
+local_exec is executed where terraform command is running, remote_exec is executed within the serverwe use these provisioners to configure the servers
+
+provisioners are used to take some action either locally or remote when terraform created servers.. 2 types of provisioners are there
+1. local-exec
+2. remote-exec
+
+we can use provisioners either creation time or destroy time
+
+local --> where terraform command is running that is local..
+
+provisioner "local-exec" {
+    command = "echo ${self.private_ip} > inventory"
+  }
+  
+remote --> inside the server created by terraform
+
+resource "aws_instance" "first" {  #here aws_instance.first is self
+
+ansible-playbook -i inventory backend.yaml
+ Remote_exec:
+ ----------------
+terraform apply -auto-approve    : when creation time only terraform create the configurations inside nginx not in update the terraform
+------------------------------------
+
+  connection {
+    type     = "ssh"
+    user     = "ec2-user"
+    password = "DevOps321"
+    host     = self.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [ 
+         "sudo dnf install nginx -y",
+      "sudo systemctl start nginx",
+     ]
+  }
+  
+  terraform destroy -auto-approve  : when destroy the resorces we can destory our configurations inside server gracefully
+  -----------------------------------
+
+
+   provisioner "remote-exec" {
+    when = destroy
+    inline = [ 
+         
+      "sudo systemctl stop nginx",
+     ]
+  }
+
+
+
+multiple environments using terraform
+=====================================
+1. tfvars --> used to override default values
+2. workspaces
+3. seperate codebase
+
+DEV and PROD, remote state use
+
+expense-dev-mysql --> mysql-dev.daws82s.online
+expense-dev-backend --> backend-dev.daws82s.online
+expense-dev-frontend --> frontend-dev.daws82s.online
+
+expense-prod-mysql --> mysql-prod.daws82s.online
+expense-prod-backend --> backend-prod.daws82s.online
+expense-prod-frontend --> frontend-prod.daws82s.online
+
+expense-dev or expense-prod
