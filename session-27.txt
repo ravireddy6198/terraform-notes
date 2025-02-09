@@ -1,0 +1,169 @@
+
+														Session - 27
+													---------------------
+													
+								
+tfvars in multiple environment
+terraform workspace	
+terreform different repos
+terraform modules 	
+ec2 module development					
+
+
+
+
+
+
+
+Why terraform? advantages
+variables
+	variables.tf
+	terraform.tfvars
+	command line
+	ENV variables
+conditions -> expression ? "true-value" : "false-value"
+loops --> count based, for each, dynamic
+functions
+data sources --> query existing information
+output
+locals --> store expressions in a variable
+state and remote state with locking
+provisioners --> local-exec and remote-exec
+multiple environments --> tfvars
+
+--> same infra created in multiple environments to enhance more reliabilty and good testing in each and every environment so we followed same infra in multiple env using infra below
+
+--> for cost optimisation whenevr we want to save the cost we can delete dev and stage environment and again reconfigure using terraform (evening 8:00 pm --> morning  08:00 am ) decrease autoscaling etc )
+
+
+https://github.com/DAWS-82S/terraform-multiple-env/tree/main/tfvars
+
+3 ec2, 3 r53 records
+====================
+expense-mysql-dev --> mysql-dev.daws82s.online
+expense-backend-dev --> backend-dev.daws82s.online
+expense-frontend-dev --> frontend-dev.daws82s.online ( here not required it is local environment)
+allow-tls-dev ( when we are not giving dev and prod when terraform apply sg already exist msg shown so we careful about namigs to isolate environments)
+
+expense-mysql-prod --> mysql-prod.daws82s.online
+expense-backend-prod --> backend-prod.daws82s.online
+expense-frontend-prod --> daws82s.online --> public IP ( in production we can give public ip for user access
+allow-tls-prod ( when we are not giving prod  here is the challenge faced to isolate environments we can take care of namings to isolate )
+
+terraform = "true" (in common tags means we can identy the infra in console is created using terraform)
+
+
+variables and tfvars
+
+diff bucket and diff dynamodb table  for diff environments
+
+terraform init -reconfigure -backend-config=dev/backend.tf
+terraform apply -auto-approve -var-file=dev/dev.tfvars
+
+if instance_name is frontend and environment is prod then name should be daws82s.online
+instance_name-environment.daws82s.online
+
+instance_name is frontend and environment is prod --> and condition
+
+we cannot place record name in locals because count.index is accessible inside the resource aws_route53_record
+
+terraform workspace
+====================
+
+https://github.com/DAWS-82S/terraform-multiple-env/tree/main/workspaces
+
+--> here we can use one bucket for different environments by using terraform workspace
+	key = "workspace-demo"
+
+terraform init
+terraform workspace :command
+
+  new, list, show, select and delete Terraform workspaces.
+
+Subcommands:
+    delete    Delete a workspace
+    list      List Workspaces
+    new       Create a new workspace
+    select    Select a workspace
+    show      Show the name of the current workspace
+
+
+terraform workspace new dev 
+terraform workspace new prod 
+terraform workspace list : giving list of workspaces
+
+terraform workspace select dev   : it is pointing to dev
+
+
+
+instance_type = lookup(var.instance_type, terraform.workspace)   : dev = "t2.micro"
+
+
+
+
+terraform.workspace  it is a special keyword --> prod
+
+terraform workspace select prod
+terraform plan
+terraform apply -auto-approve
+
+1. tfvars
+2. workspaces
+3. maintain different repos for diff environment
+
+terraform-expense-dev  (seperate repo)
+terraform-expense-prod   (seperate repo)
+
+here first two are for one small website like startups used those techniques like tfvars and terraform workspaces
+third one is for big projects and banking projects used because of avoiding production error to maintain high availability and no downtime
+
+
+
+
+
+disadvantages of first two
+===========================
+should be very careful --> because same code to prod also, any mistake in dev causes confusion in prod
+should have full expertise, too much testing
+
+advantages of first two
+=========================
+code reuse only no advantages because of above disadavantages
+
+disadvantages of third one 
+============================
+multiple repos to manage
+may be we need more employees
+
+advantages of third one 
+==========================
+clear isolation between environments, no confusion
+
+
+terraform modules
+========================
+variables, functions, ansible roles, locals
+
+modules --> it is like functions, you can pass inputs you will get infra
+code reuse
+enforce standards and best practices
+centralised place to updates
+
+https://github.com/DAWS-82S/terraform-aws-ec2
+
+
+https://github.com/DAWS-82S/ec2-module-test
+
+
+
+
+
+--> how do you create multiple environments using terraform ?
+
+	we have multiple ways to create multiple environments one is tfvars, workspaces and maintaining different reposour client needs clear isolation between the infrastructure as a code so we use selected different repos for different environments
+	
+	we got this problem when we are creating infrastructure to ourcloient so we proposed there are 3 waystfvars, workspaces and then seperate repos we had a huge discussion what are the advantages and disadvantages since our project is very crucial so we didn't want to take risk ofgoing through tfvars or workspaces approach so we selected another approach of maintaining different folders for different environments
+	
+--> what is terraform workspace ?
+
+	terraform workspace is a way of creating same  infrastructure in multiple environments, terraform will give us variable called terraform.workspace we can create newworkspaces using terraform workspace create command and then we selectwhich workspace we want to work inthen we will make use of terraform.workspace variableto control the values once work is done in that environment then we can switch to another environment

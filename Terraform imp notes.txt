@@ -60,3 +60,5 @@ resource "aws_instance" "first" {  #here aws_instance.first is self
 --> How do you override default variable values in terraform ?
 --> locls vs variables in terraform ?
 --> what is state in teraform ?
+--> what are the advantages of terraform modules?
+

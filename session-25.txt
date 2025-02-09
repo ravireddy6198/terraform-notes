@@ -16,7 +16,7 @@ datasource:
 ------------
 runtime lo dynamic ga techukovadam
 data source are used to query existing information from the provider
-whenver any update happened in devops-practice ami tha ami-id will be changed ( for any resources in aws updates happens id changed)
+whenever any update happened in devops-practice ami the ami-id will be changed ( for any resources in aws updates happens id changed)
 
 for every resource in aws we have a datasource
 resource means creation of resource
@@ -28,7 +28,7 @@ data "type" "name" {
 
 --> every region have one default vpc
 
-outblocks are used to print the info , it will be used in module development too
+out blocks are used to print the info , it will be used in module development too
 
 locals :locals are used to run the expressions or function  and save the results to variables
 ---------
@@ -63,7 +63,7 @@ when we do terraform plan or terraform apply
 
 terraform reads state file and then compare that with actual infra using provider
 
-terraform responsibility is matched the desired infre with actual infrastructue if some one chanes the infreoutside of terraform ( console ) terraformcan detectby comparing the statefile with actual infra and give us the changes
+terraform responsibility is matched the desired infra with actual infrastructue if some one changes the infra outside of terraform ( console ) terraform can detect by comparing the statefile with actual infra and give us the changes
 
 when we do terraform apply again changes will be reverted instead of manual changes this is why easy to restore with terraform if something goes wrong for some manual changes are happened
 
@@ -88,7 +88,7 @@ but when we dont have any edit parameter option exist through console terraform 
 tfstate file is only for terraform reference dont do any manual changes happened
 tfstate file is very importaant file we need to secure it 
 
-so tfste file needs to push to github
+so tfstate file needs to push to github
 
 clone terraform repo and we do terraform apply there will be a possibility of duplicate resources created or some errors occured
 

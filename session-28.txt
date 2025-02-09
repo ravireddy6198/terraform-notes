@@ -1,0 +1,312 @@
+	
+																Session - 28
+															======================
+															
+VPC
+	subnets
+	Route tables
+	Routes
+	Associations
+	EIP
+	NAT
+VPC MODULE DEVELOPMENT
+															
+															
+															
+															
+															
+--> what are the advantages of terraform modules ?
+please see the diagramme
+
+													
+															
+reusability
+maintainability
+standards
+consistent infra across organisation
+
+
+
+on-premise data centers disadvantages :
+physical space occupies
+physical security 24*7
+networking
+power connection
+firewalls
+linux admins
+n/w admins
+storage backups
+so lot of people to hire for the bank to main infra in onpremise ( for digital banks)
+
+to avoid above problems cloud come into picture
+
+VPC
+=====
+Virtual private cloud. A isolated project space where we can create services for a project. We wil have full control and access on this in data center
+
+
+
+We need proper society space to construct house. 
+
+village --> name, pincode
+street --> name, street number
+house --> C/O name, house number. Main gate
+
+VPC --> Virtual private cloud
+subnets
+igw --> to provide internet connection
+databases --> no outside person should have access to DB
+frontend application --> public, anyone internet can open
+routes
+HA --> High availability
+region --> min 2AZ(data center)
+
+IP Address --> 2^32
+0.0.0.0
+.
+.
+.
+.
+255.255.255.255 --> each octate 8 bits
+
+192.145.34.56
+
+500082 --> It represents one entire village
+
+CIDR --> Classless inter domain routing
+
+10.0.0.0/16 -> first 2 octates are blocked for network bits. 
+
+10.0.0.0
+10.0.0.1
+10.0.0.2
+10.0.0.3
+..
+.
+.
+10.0.0.255
+10.0.1.0
+10.0.1.1
+.
+.
+.
+10.0.1.255
+
+256*256 -> 65,536
+
+subnet --> CIDR --> 10.0.0.0/24 --> 24 bits or 3 octates blocked. 256 IP addresses are possible
+1a --> 10.0.0.0/24 --> 256 IP addresses
+1b --> 10.0.1.0/24 --> 256 IP addresses
+
+10.0.1.0
+10.0.1.1
+10.0.1.2
+.
+.
+.
+10.0.1.255
+
+10.0.22.145 --> database 1b
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+1) creating VPC
+==================
+--> give CIDR range 10.0.0.0/16
+--> when we create VPC one default route table and one default NACL is created
+
+2) Internet gateway creation
+==============================
+
+--> this will allow the inernet access to VPC
+--> once IGW created and we have to attach this IGW to the VPC (step-1 VPC attached)
+
+3)creation of subnets 
+==========================
+
+--> give two subnets in two AZ
+
+expense-public-1a --> 1a      - 10.0.1.0/24
+expense-public-1b --> 1b      - 10.0.2.0/24
+ 
+once these two subnets created the default route table  and default NACL is attached to these subnets by default
+
+--> again we have to create two private subnets in two AZ like above
+
+expense-private-1a --> 1a     - 10.0.11.0/24
+expense-private-1b --> 1b     - 10.0.12.0/24
+
+once these two subnets created the default route table and default NACL  is attached to these subnets by default
+
+
+--> again we have to create two database subnets in two AZ like above
+
+expense-database-1a --> 1a     - 10.0.21.0/24
+expense-database-1b --> 1b     - 10.0.22.0/24
+
+once these two subnets created the default route table and default NACL  is attached to these subnets by default
+
+4) Route tables creation
+================================
+
+--> create one route table expense-pulic 
+
+	goto subnet associations and attach the public subnets
+	
+	expense-public-1a 
+	expense-public-1b
+	
+--> create one route table expense-private 
+
+	goto subnet associations and attach the private subnets
+	
+	expense-private-1a 
+	expense-private-1b
+	
+--> create one route table expense-databse 
+
+	goto subnet associations and attach the databse subnets
+	
+	expense-databse-1a 
+	expense-databse-1b
+	
+so that main route table ( default route table ) released from the all subnets because of attaching the different subnets into different route tables,Hense the default route table not associated with any of the subnets
+
+10.0.0.0/16  local in route means this particular IP range local ga road available ga vundhi means that all subnets are communicate to each other
+
+--> we have to edit the route for expense-public rout table and give	
+		0.0.0.0/0   -->  IGW
+	this will ensure that intenet is coming through this IGW ( means oka road vesaam IGW nunchi public subnets
+
+
+NAT --> if you want to enable egress internet to the servers in private subnet, you should create NAT gateway in public subnet and provide route to private subnets
+if traffic coming to server --> ingress
+if server is sending traffic to internet --> egress
+
+creation of NAT gateway
+============================
+
+requirement is one elastic IP because whenever NAT gatway stooped and start the Ip will get changed 
+
+creating elastic IP 
+creating NAT gateway and attaching elastic IP for that NAT gatway
+
+edit the expense-private route and give
+	0.0.0.0/0  --> NAT
+	
+edit the expense-databse route and give
+	0.0.0.0/0  --> NAT
+
+--> NAT is only for egress traffic not coming ingress traffic
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+static(elastic) IP --> 1000
+
+VPC --> 10.0.0.0/16
+IGW --> Attach to VPC
+Public subnets --> 10.0.1.0/24 10.0.2.0/24
+Public Subnets --> Public Route --> 0.0.0.0/0 --> IGW
+
+Private Subnets --> 10.0.11.0/24 10.0.12.0/24
+Private Subnets --> Private Route --> 0.0.0.0/0 --> NAT
+
+Database Subnets --> 10.0.21.0/24 10.0.22.0/24
+Database Subnets --> Database Route --> 0.0.0.0/0 --> NAT
+------------------------------------------------------------------------------------------------------------
+
+
+
+adding existing folder to github
+=====================================
+--> create folder terraform-vpc-module this is a folder we can add it to github 
+	first we will create git repo
+	go to that folder open git bash here
+	
+	create a file main.tf
+	follow the steps
+	
+   git init
+   ls -la     --> here to see .git folder created
+   git branch -M main
+   git remote add origin https://github.com/ravireddy6198/terraform-aws-vpc.git
+   git add .; git commit -m "vpc module created"; git push origin main
+   
+ ---------------------------------------------------------------------------------------------------------------
+ 
+ --> do not use resource name as TAGS (like expense-vpc not to give just give expense ) in terraform 
+
+
+for humans - or _(expense-dev)
+for programs _(expense_dev)
+
+joindevops --> expense, roboshop
+
+project-name-environment
+
+Project = expense
+Environment = dev
+Terraform = true
+Name = expense-dev
+
+40.25.35.98 --> Home N/W --> Google N/W
+
+IP = N/W + Host ID
+
+dnf install mysql-server --> my EC2 is requesting internet to provide mysql-server		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--> what is VPC ?
+--> what is difference between public subnet and private subnet?
+public subnet will have route to the IGW private subnet will not have route to the IGW
+--> IGW vs NAT gatway ?
+--> oka 3-tier architecture application ni kubernetes lo deploy cheyandi assignment isttaru using aws cloud infrastructure and terraform bayata companies lo ?
+	for that we have to keep one VPC module in GITHUB so that interviewer will impress to our profile
+--> in organizations usually for every environment they maintain dedicated one aws account ( means dev, prod for two aws accounts )
+--> vpc is addition of subnets	
+-->10.0.0.0/32 means 10.0.0.0 is the IP address
+--> we have to give the access for databse subnet to developers for issues then how it will connect means give the access through bastion host or VPN
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+													
+													

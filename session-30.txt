@@ -1,0 +1,186 @@
+
+															Session -30
+														===================
+														
+														
+														
+vpc peering routes creation complete ( here total vpc module creation completed with vpc perring also )
+open source modules vs custom modules 
+sg module creation
+ssm parameter creation for vpc_id
+sg module creation completes with pushing the values to ssm ( vpc_id, sg_id)
+
+									
+														
+														
+														
+														
+														
+														
+														
+														
+														
+														
+["apple","orange","banana"] --> list
+["apple"] --> list
+
+1. custom modules in terraform
+2. open source modules in terraform
+
+custom modules
+----------------------
+
+advantages
+==========
+we know what we created and what we want
+
+disadvantages
+==========
+you need to write everything from the scratch
+
+
+open source modules 
+=============================
+advantages
+-----------
+everything is ready
+
+disadvantages
+----------
+we dont know what is inside
+we have to wait for the fix if something is wrong, we must update when they updated. (old student got issue he needs to update the terraform open source code )
+
+what types of modules used in your project opensource or custom ?
+we have multiple projects some projects we used open source and some projects used custom especially in banking projects we used custom modles why because when we use open source modules we need forced to update our modules whenever terraform gives any updation for bug fixing of their side , if something goes wrong we need to wait for the bug fix, we dont want create the dependency on the terraform community
+
+custom modules means 
+
+hdfc bank total wise we have to create modules in that
+
+we have used that modules for projects under hdfc bank like saving bank, credit card project, loan project ( these are all under hdfc projects )
+so we have created modules centrally and used by the projects 
+
+module development devops engineers creating the modules ( one team centrally work) and they have to give clear documentation how to use the modules 
+projects individual devops engineers used those modules to create the resources on aws ( different project devops engineers to work )
+
+--> creation of module on security group  : 
+----------------------------------------------------
+
+source = "../aws_vpc_module"
+
+source = "git::https://github.com/DAWS-82S/terraform-aws-vpc.git?ref=main"
+
+we can do terraform init -reconfigure
+so that all modules placed under .terraform folder (.terraform/modules/vpc/all-files are there) in the terraform-vpc-test ( our local repo)
+
+we have used source in the module test like this in real time because modules are placed centrally and we have to use source like this
+
+whenever a new change happened in the modules centrally we have to pull the changes to our local and then do "terraform -get-update" so that new changes are added to our .terraform folder
+
+in real time whenever new update happened in terraform modules we can mention one date to release the update and provide proper documention of that upate after that we have to tell all the module users for that update and date 
+
+--> we can give egress only under security group module not ot give ingress, user passes the ingress rules what they want, if module developers gives the ingress rules in security group module terraform understand we have already two sg rules (one is module developed sg rule and user provided sg rule, teffarorm state file understand to see the main.tf files and state files identifies modules developed and user given understand as two) there again user passes the sg rules terraform delete the existing sg rules ( module developers provided sg rules ) and create user given sg rules to avoid this we ( module developers ) have to give egress only in sg module and routes in route tables
+
+--> above is interview question what is recent problem you faced in your project ?
+
+
+Our junior engineer developed a sg module with ingress rules from the user. Module users started using it, for another requirement they added new firewall seperately. When they run module again our module deleted newly added rule. So we decided not to add sg ingress rules in module development.
+
+--> in real time the big project contains one team for vpc team, one team for sg, one team for ec2 instance worked
+	here sg depends on vpc, the responsibility of vpc team is what values (vpc_id) will required for sg team which stored in ssm parameter store, so that sg team will pick the vpc_id from ssm parameter store for sg creation
+	
+--> creation of resource ssm in vpc-module test ( here testmodules create resource and upload the vpc_id to ssm by using 
+	
+--> module developers exposed ouputs and users used those outputs in the module like vpc_id (value = module.vpc.vpc_id ( see below code ))
+
+resource "aws_ssm_parameter" "vpc_id" {
+  name  = "/${var.project_name}/${var.environment}/vpc_id"
+  type  = "String"
+  value = module.vpc.vpc_id
+}
+
+
+
+# expense-dev-mysql
+resource "aws_security_group" "main" {
+  name        = local.sg_final_name
+  description = var.sg_description
+  vpc_id      = var.vpc_id
+  
+  ingress {
+    from_port        = 80
+    to_port          = 80
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = merge(
+    var.common_tags,
+    var.sg_tags,
+    {
+        Name = local.sg_final_name
+    }
+  )
+}
+
+
+resource "aws_security_group_rule" "example" {
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 65535
+  protocol          = "tcp"
+  cidr_blocks       = [aws_vpc.example.cidr_block]
+  ipv6_cidr_blocks  = [aws_vpc.example.ipv6_cidr_block]
+  security_group_id = "sg-123456"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--> what types of modules used in your project opensource or custom ?
+we have multiple projects some projects we used open source and some projects used custom especially in banking projects we used custom modles why because when we use open source modules we need forced to update our modules whenever terraform gives any updation for bug fixing of their side , if something goes wrong we need to wait for the bug fix, we dont want create the dependency on the terraform community

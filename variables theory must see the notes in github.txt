@@ -13,7 +13,7 @@
 	
 	creating aws infrastructure on muliple regions and multi cloud ( companies are using hybrid cloud )
 	
-	refer below link documentation nobody remeber the syntax to write in realtime as well but we can unstand rough structure for interview
+	refer below link documentation nobody remeber the syntax to write in realtime as well but we can understand rough structure for interview
 	
 	https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_machine
 	

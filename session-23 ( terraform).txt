@@ -41,7 +41,7 @@ IaaC --> Infra as a code
 
 advantages :
 -----------------------
-version control --> tracking , you can version control your infra. expense-infra-1.0 expense-infra-2.0 ( how much cost increase by using resorces )
+version control --> tracking , you can version control your infra. expense-infra-1.0 expense-infra-2.0 ( how much cost increase by using resources )
 restore if something goes wrong --> easy to restore if something goes wrong( through console any one overwrite anything like issues )
 Consistent infra --> you can create same infra across all environments ( through main.tf files )
 Inventory management --> you can understand the resources by seeing terraform files ( just by seeing terrafrm file to understand what resources in aws )

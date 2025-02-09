@@ -8,8 +8,8 @@ https://github.com/iam-veeramalla/terraform-zero-to-hero/tree/main/Day-1
 	
 --> generally when we create aws resources on aws we see the UI like through console we can create
 	when we want to create one s3 bucket through console it will take 2 min but when we have requiremnt for 100 s3 buckets for different people in organization through console it will take 100*2 min 
-	to solve above issue we can create aws resources through programatically, aws provide API's by using those apis wwe can connect to aws and use that apis to write some code in templeting lanuage 
-	here to interact with apis programming knwledge required but some of might have no programming knowledge aws intoduced CFT 
+	to solve above issue we can create aws resources through programatically, aws provide API's by using those apis we can connect to aws and use that apis to write some code in templeting lanuage 
+	here to interact with apis programming knowledge required but some of might have no programming knowledge aws intoduced CFT 
 	by using CFT we can write the files in json/yaml templating language, by providing the resources in that file aws can areate resouces accordingly
 		to avoid manual creation aws can create resources by using automation
 		
@@ -25,7 +25,7 @@ https://github.com/iam-veeramalla/terraform-zero-to-hero/tree/main/Day-1
 	why terraform : ( universal approach)
 ----------------------
 
--> we have multiple clouds like aws azure, GCP, openstalk etc devops engineer needs to learn CFT, ARM means specific to cloud and also might have  to learn some scripting language as well 
+-> we have multiple clouds like aws azure, GCP, openstalk etc devops engineer needs to learn CFT, ARM, means specific to cloud and also might have  to learn some scripting language as well 
 	
 	to solve the above problem devops engineer learn terraform instead of all above. 
 	to learn terraform devops engineer know the HCL language it is also some kind of template language just 'provide' the name of cloud provider, terraform file will execute accordingly, some projects can contains high availability and multiple resorces while creating these through manually is not possible means takes lot of time, so terraform solve this problem also
@@ -45,7 +45,7 @@ https://github.com/iam-veeramalla/terraform-zero-to-hero/tree/main/Day-1
  step -1 :
  ---------
  
-		in companies used IAM user as aws account not root user 
+		in companies used IAM user as aws account, not root user 
  
 	install awscli to authenticate to aws 
 	

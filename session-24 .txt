@@ -1,17 +1,16 @@
 
-												Session -24 (
+												Session -24 
 										----------------------------
 										
 										
 variables
+data types
 conditions
 loops
 functions
 										
 										
-										
-										
-										
+																		
 										
 										
 --> when we do terraform init terraform reads the providers file and download the dependencies inside .terraform file
@@ -51,13 +50,13 @@ cmd, tfvars, env variables, default
  
  export TF_VAR_instance_type="t3.micro"
 	
- unset TF_VAR_instance_type
+	
 
 
-1. command line --> -var "<var-name>=<var-value>"
+1. command line --> -var "<var-name>=<var-value>"   (  terraform plan -var "instance_type=t2.small"   )
 2. tfvars
 3. env var
-4. default values --> i think this befor of env var
+4. default values 
 5. user prompt
 
 conditional expressions :

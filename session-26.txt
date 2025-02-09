@@ -32,7 +32,7 @@ ingress {
 
   }
   
-  whenn we want multiple ingress ports required we have to mention dynamic blocks by usinf for_each loop
+  whenn we want multiple ingress ports required we have to mention dynamic blocks by using for_each loop
 
 for_each loops
 ===============
