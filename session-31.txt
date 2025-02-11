@@ -1,0 +1,250 @@
+
+														Session - 31
+													===================
+													
+
+
+pushing and getting VPC_id, sg_is in SSM
+expense infra dev creation starts
+sg modules creation
+bastion resource creation
+LB theory and practical from console creation
+
+
+
+
+
+
+
+terraform refresh
+100% no need to touch the state file in realtime
+
+vpc : seperate team (vpc_id, subnet_ids)
+sg  : seperate team working big banking projects( refer to vpc params and update sg ids in store )
+
+vpc_id, sg_id : store in SSM parameter store ( specific teams pushed to ssm)
+
+by using all terraform concepts we can build a expense project by using terraform
+
+--> expense-infra-dev ( expense project creation )
+================================================================
+
+project creation starts from back to front (mysql--backend--frontend)
+	
+00 - VPC creation ( here we can treat as one repo)
+10 - sg creation ( here we can treat as another repo) means two seperate terraform projects or repositories
+
+
+00 - VPC creation
+---------------------------
+copy code from vpc-test in modules folder
+
+expose public subnet ids in module ( already there)
+we can take those output into 00-vpc ( creating outputs for public, private, database_subnets)
+
+["subnet-4wdjnncncnnc", "subnet-4wdjnncncnnc"] --> terraform follows(List)
+"subnet-4wdjnncncnnc", "subnet-4wdjnncncnnc" --> aws (StringList) follows ( in ssm using string list) Terraform ( String)
+
+in ssm above conventions to be modifies from terraform to aws in ssm
+
+join(",",["subnet-4wdjnncncnnc", "subnet-4wdjnncncnnc"])
+subnet-4wdjnncncnnc,subnet-4wdjnncncnnc
+
+
+resource "aws_ssm_parameter" "private_subnet_ids" {
+  name  = "/${var.project_name}/${var.environment}/private_subnet_ids"
+  type  = "StringList"
+  value = join(",", module.vpc.private_subnet_ids)
+}
+
+--> vpc team lo pani ayipoyindhi we have pushed all vpc_id, public,private,database_subnet_ids to SSM parameter store
+
+terraform init
+terraform plan
+terraform apply
+
+
+10-sg  :
+-------------
+
+here onwards we can create sg for each and everything means one for backend, one for frontend, one for databse, one for LB instead of going allow-all sg 
+
+adding sg modules for frontend and backend in sg.tf
+and also ssm resources for frontend and backend  creation in parameters.tf
+error
+-----
+╷
+│ Error: Module not installed
+│
+│   on sg.tf line 21:
+│   21: module "frontend_sg" {
+│
+│ This module is not yet installed. Run "terraform init" to install all
+│ modules required by this configuration.
+
+
+whenever new modules are added do terraform init again so that terraform recognise those modules accordingly
+
+terraform init
+terraform plan
+terraform apply
+
+all modules and ssm resources gets created and pushed the values of all sg_id defined in module and ssm resources completed we can see the values of sg_ids in ssm parameter store
+
+private subnet and database subnet have not public_ips so we cannot able to connect these subnets from outside VPC
+
+NAT --> outgoing traffic only
+
+Bastion host or jump host : one ec2 in public subnet from this host to private host, these are useful to connect to private servers
+
+from bastion host ssh ec2-user@private_ip
+DevOps321  : to connect to private host
+
+Bastion host --> private or database hosts ( connecting )
+
+
+creation of Bastion host 
+----------------------------
+
+--> we can create bastion host for connecting the private servers in private subnets through terraform
+--> bastion is just an ec2 instance placed in a public subnet
+
+we dont want to create modules for bastion unnecessarily, this is a single task resource(bastion) creation, it is not like a VPC, SG modules ( involved multiple things/tasks)
+
+20-bastion
+------------
+
+bastion.tf
+provider.tf
+data.tf
+variables.tf
+locals.tf
+
+
+using split() function conver string list(aws ssm ) to List (terraform )
+
+  public_subnet_id =split(",", data.aws_ssm_parameter.public_subnet_ids.value)[0] # it is converting to LIST and take first one
+  
+  
+terraform init
+terraform plan
+terraform apply
+
+bastion instance created in public subnet 
+
+
+Load Balancer :  we have to understand more thoroghly interviewers asked so many questions on LB
+-------------------
+
+Load Balancer
+Listner
+
+Rules
+=======
+Target Group
+Health check
+
+
+AutoScaling :
+--------------------
+Launch Template
+autoscaling policy
+
+
+--> we cannot allow the traffic to instances directly incase traffic increased we need to introduce LB so we have to introduce the LB intially
+		and also we can introduce auto scaling so that all instances get increased and configured the LB automatically
+--> LB has also sg
+
+
+#!/bin/bash
+dnf install nginx -y
+systemctl start nginx
+
+--> instance open the port 80 means it is healthy in target group concept
+--> create LB in atleast two availability zones
+
+--> LB Listner ( port -80 )  --> forwatd traffic from LB to nginx target group (
+--> user, cart, shipping etc ( backend like microservices)
+user.daws82.online --> user target group
+cart.daws82s.online --> car target group
+
+
+LB DNS :
+
+http://nginx-1898455898.us-east-1.elb.amazonaws.com/
+
+Listener --> 80
+Rule --> all traffic send to nginx tearget group
+
+Health check : 2 instance are in healthy
+round robbin algorithm to forward requests
+
+request send to ec2 instances --> port no 80 lo running 
+
+Load balancer
+Listner
+Rule
+Target group ( group of servers)
+instances
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+interview task : create 3 tier architecture application teesukuni kubernetes lo deply cheyaali infrastructure anta terraform to create cheyaali pipelines cicd to mention cheyaali ani istaaru

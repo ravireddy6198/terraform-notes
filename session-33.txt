@@ -1,0 +1,291 @@
+
+																Session - 33
+															====================
+															
+															
+			
+VPN creation setup through console ( it is one time activity do it manually )
+
+
+
+
+
+			
+															
+															
+dont give bastion host access to developers if developers changed any configuration inside backend which leads to configuration issues bastion host accessed by devops engineer and admins only, but how developers to connect backend services for their testing like get requests atleast, so we have an option called     VPN      			 											
+
+
+
+VPN : this is in your VPC network (developers VPN connect chesukoni manam nee network loney vunnamu ani ALB backend ki choopistundhi ) so that developers connect VPN and access backend ALB to test their GET requests 
+
+developer --> VPN --> ALB backend   ( here developer laptop aws network lo vunnattlu when he connects from home )
+
+Request flow :
+
+developer --> VPN --> ALB backend ( SG allowed for VPN )
+ALB backend --> VPN --> developers 
+
+--> generally for VPN s seperatem team is there for every projects ( VPN s like cisco, citrix etc )
+
+==> we have to create SG for VPN as well
+
+#ports  22, 443, 1194,943 --> Vpn ports need to open 
+module "vpn_sg" {
+    source = "../../aws_sg_module"
+    project_name = var.project_name
+    environment = var.environment
+    sg_name = "vpn"
+    sg_description = "Created for bastion vpn instances in expense dev"
+    vpc_id = data.aws_ssm_parameter.vpc_id.value
+    common_tags = var.common_tags
+}
+
+
+creating resource aws_security_group_rule for VPN ( vpn_ssh, vpn_443 , vpn_943, vpn_1194) in sg.tf
+
+--> we have to export pn sg_id value to ssm parameter store
+
+in parameter.tf
+
+resource "aws_ssm_parameter" "vpn_sg_id" {
+  name  = "/${var.project_name}/${var.environment}/vpn_sg_id"
+  type  = "String"
+  value = module.vpn_sg.sg_id
+}
+
+
+
+VPN creation setup through console ( it is one time activity do it manually )
+--------------------------------------------------------------------------------------------------------
+in aws also vpn service is there but we dont want to go for that service ( it is bit confusion simply go for launch instance )
+
+--> creation of VPN through console
+	Launch instances --> browse amis --> search openvpnaccess server community ( ami ends with dea6f , open vpn access server community Image -fe8020db) --> attach key-pair --> select VPC, public subnet, Enable public IP, sg--> launch instances
+	
+--> we have to connect the vpn and do some configurations ( this is openvpnas distribution )
+	openvpn --> ssh username
+	openvpn, Openvpn@123 --> client credentials
+	
+1)	ssh -i .pem openvpnas@<public_IP>  --> do  yes, yes, enter again and again , yes, yes, yes, yes, set oopenvpn password as like 'OpenVpn@123', enter
+	
+2)	some urls appeared 
+	give take Admin UI url and access from browser-->give login credentials( openvpn, Openvpn@123 )--> agree-->appeared open VPN console
+	no more VPN settings required  ( already all settings given in step 1 like yes and enter )
+	
+	--> so now all VPN server setup completed it is up on running
+		now we want vpn client software to connect the server
+		download OpenVpn connect for windows software from 
+		
+		https://openvpn.net/client/client-connect-vpn-for-windows/
+		
+		open the client openvpnconnect software in laptop and get connected window appeared give url ( client UI url taken from cmd in step-2 )--> next--> apperaed import profile window (username is already there ) --> give password Openvpn@123--> select check box connect after import --> click IMPORT --> again it is asking password and give that --> now client is connected to server
+		
+		check my ip in browser it showing as i am in us-east-1 location ( it is hiding my location ) and the IP address is showing as open vpn IP address meaning that my laptop is in US location  ( checking what is my Ip in browser it is showing as openVpn Ip address) so hiding my laptop adrees through VPN completed
+		
+		
+		
+--> so now we can acess the backend ALB through VPN is possible,now developers connecting through vpn via SSH and get the APIs is possible through VPN
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+--> we have created sg for VPN but we have to add the rule in ALB backend also so that we will get the ALB response through VPN 
+
+	app alb vochesi vpn source nunchi traffic ni accept cheyaali on port 80
+	
+	in sg.tf
+	
+	resource "aws_security_group_rule" "app_alb_vpn" {
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  source_security_group_id = module.vpn_sg.sg_id
+  security_group_id = module.app_alb_sg.sg_id
+}
+
+==> now we will get the default response in our laptop from ALB backend ( APP ALB ) through VPN ( check on browser to hit ALB DNS ( anything.app-dev.daws82s.online ) )
+
+--> generally in companies developers have VPN acces they will access the private end points like private ALB, private backend urls for testing 
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+every time lunching VPN instance through console is not recommended because it is a manual process we have automate through terraform to create VPN and for configurations inside VPN do it manually 
+
+create
+
+30-vpn
+
+vpn.tf
+variables.tf
+data.tf
+provider.tf
+locals.tf
+
+change values of owners and filter{ name, value} in data.tf
+change aws_ssm_parameter give vpn_sg_id to get the VPN sg id 
+
+goto vpn.tf
+create VPN resorces as
+-------------------------------------------------------------------------------------
+
+resource "aws_instance" "vpn" {
+  ami                    = data.aws_ami.openvpn.id # This is our devops-practice AMI ID
+  vpc_security_group_ids = [data.aws_ssm_parameter.vpn_sg_id.value]
+  instance_type          = "t2.micro"
+  subnet_id = local.public_subnet_id
+  tags = merge(
+    var.common_tags,
+    {
+        Name = "${var.project_name}-${var.environment}-vpn"
+    }
+  )
+}
+-----------------------------------------------------------------------------------------
+
+terraform init inside 30-vpn folder
+
+now we have a problem to connect vpn we required key for that we have to generate key (ssh-keygen -f openvpnas) inside daws-82s folder 	
+it will generate a pub and private key ( rename to .pem for private key )
+
+create resource aws_key_pair  in vpn.tf 
+
+
+resource "aws_key_pair" "openvpnas" {
+  key_name   = "openvpnas"
+  public_key = file("/c/devops/daws-82s/openvpnas.pub")     #  file("C:\\Devops\\daws-82s\\openvpnas.pub")  in programming give \\ for windows address 
+}
+
+here file() is used to read the file in that path and pass(paste) the content in public_key attribute
+if that public key already there in aws key pairs give attribute as
+
+key_name = aws_key_pair.openvpnas.key_name in aws_instance
+
+-------------------------------------------------------------------------------------------------------------------
+
+resource "aws_key_pair" "openvpnas" {
+ 
+  key_name   = "openvpnas"   
+  public_key = file("C:\\Devops\\daws-82s")
+}
+
+
+
+resource "aws_instance" "vpn" {
+  ami                    = data.aws_ami.openvpn.id # This is our devops-practice AMI ID
+  key_name = aws_key_pair.openvpnas.key_name     #  here public key attached to the instance 
+  vpc_security_group_ids = [data.aws_ssm_parameter.vpn_sg_id.value]
+  instance_type          = "t2.micro"
+  subnet_id = local.public_subnet_id
+  tags = merge(
+    var.common_tags,
+    {
+        Name = "${var.project_name}-${var.environment}-vpn"
+    }
+  )
+}
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------
+
+terraform init
+terraform plan
+terraform apply	
+
+
+now connect "ssh -i .pem openvpnas@<public_IP>" (laptop --> VPN instance ( it is VPN server))
+again it is asking some steps like
+
+1)	ssh -i .pem openvpnas@<public_IP>  --> do  yes, yes, enter again and again , yes, yes, yes, yes, set oopenvpn password as like 'OpenVpn@123', enter
+
+
+connected to vpn instance(VPN server)
+
+now we have to connect the VPN server from OpenVPN client ( which is already installed on our laptop )
+
+open the client openvpnconnect software in laptop and get connected window appeared give url ( client UI url taken from cmd in step-2 )--> next--> apperaed import profile window (username : openvpn ) --> give password Openvpn@123--> select check box connect after import --> click IMPORT --> again it is asking password and give that --> now client is connected to server
+
+==> now we will get the default response in our laptop from ALB backend ( APP ALB ) through VPN ( check on browser to hit ALB DNS ( anything.app-dev.daws82s.online ) )
+
+==> we can on and off the openvpn connect window because our laptop slow down  means that our all browsing requested goes to us VPN and --> amazon --> forward back to vpn --> laptop ( getting response ) so always stop when we are not used for VPN to connect APP ALB , our laptop may slowdown because of requests passing through VPN for ourbrowsing history
+
+--> this is simple VPN for testing purpose 
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--> we have one time infra setup for RDS, ALB, jump/bastion host, VPN  ( means we have setup it for intial stage of project )
+
+	after we have to setup backend,  frontend applications inside VPC
+	
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+	RDS setup 
+========================
+
+DB
+=====
+on premise lo DB setup
+-----------------------------------
+
+we have the DB developers, DB admins. they have to do
+
+DB installations
+DB upgrades
+DB backups
+DB changes
+DB cluster setup ( configure many DB server (master-node setup) )
+DB restoration test
+
+cloud lo Db setup
+-----------------------------
+we have one service is there in aws i.e.,
+
+		"RDS"
+		
+what that service is doing 
+
+DB installations --> we just need to provide configurations
+DB upgrades 
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+--> we can give comments for every resource creation ( if jeera ticket assigned for that resource mention jeera ticket id on the above resource comments )
+	
+	

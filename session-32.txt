@@ -1,0 +1,177 @@
+	
+																Session -32
+															====================
+															
+													
+
+
+
+ALB --> Listner --> Evaluate Rules --> target group --> health check --> server
+
+Terraform ALB creation 
+==============================
+
+platform engineer : ( org lo anni modules centralised chesevallani platform engineers antaaru )
+
+organization modules 
+======================
+
+they have to write complete code
+
+advantages 
+-------------
+fully our control
+
+50-app-alb
+===============
+
+main.tf
+variables.tf
+data.tfprovider.tf
+
+
+  subnets = join(",",data.aws_ssm_parameter.private_subnet_ids.value) 
+  
+  --> taking open source ALB module  to see readme.md 
+  
+  https://github.com/terraform-aws-modules/terraform-aws-alb
+  
+Project Infra --> one time creation (vpc,database,sg) we have much focus on one time creation infra because in future wheneverany changes required it is completely dependent by some other resources it may effect so carefully create this ( like basement of project) change means ( shifting whole house )
+
+
+Application Infra --> frequent (backend server,sg rules ) whenever new releses happened it will be change to new version 
+
+stateful vs stateless
+state = data (stateful) whenever the data deleted the entire business goes down
+databse --> stateful
+backend, frontend -->stateless ( whwenever the backend or frontend deleted we can install the app again 
+
+stateful means data store ayye apps
+stateless means data store kaani apps
+stateless means data store kaani apps
+
+
+so we have to create project infra first
+
+after 20 years in the project ALB not changed but backend servers changed frequently
+
+currentl i am creating project infra for expense project once project infra completes we have to put app infra in project infra
+
+we have to test backend ALB DNS through bastion host only because it is private ALB 
+bastion host --> app ALB
+ALB SG rule --> port 80 -- bastion host IP (here Ip always changed whenever restarts)
+
+goto expense-dev-app-alb in sg --> edit inbound rules give source as custom sg_id of bastion host so that Ip conflicts avoided ( instead of IP address give sg_id of bastion here Ip change problem solved )
+
+here this bastion sg having any instances under, ALB accepts the requests 
+
+creating sg rule for ALB
+
+#App tier ALB accepting traffic from bastion (bastion source nunchi vochey traffic ni port no 80 pyna ALB sg accept cheyamani cheptunnam)
+resource "aws_security_group_rule" "app_alb_bastion" {
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  source_security_group_id = [module.bastion_sg.sg_id]
+  security_group_id = module.app_alb_sg.sg_id
+}
+
+  Login bastion host through mobaxterm and connect to ALB backend and check the default message body 
+  
+  fixed_response {
+      content_type = "text/html"
+      message_body = "<h1> Hello i am from baclend App ALB</h1>"
+      status_code  = "200"
+  }
+  
+  
+  we have to map ALB backend dns to route 53 
+  
+  daws82s.online
+  backend.app-dev.daws82s.online
+  
+  user, cart, catalogue, shipping, payment
+  
+  user.app-dev.daws82s.online --> request goes to user component
+    cart.app-dev.daws82s.online --> request goes to cart component
+	
+-->balance the load between multiple components is called as load balancer
+
+so we can give  [*.app-dev.daws82s.online ] --> expense dev app alb 
+
+here we have to map the recordes for ALB because dns for ALB backend not to remeber so we mapped with [*.app-dev.daws82s.online ] the alias for dns of ALB
+
+so i can use [anything.app-dev.daws82s.online ] for backend ALB from bastion host i can see the response ( see the screeshots )
+
+we need to create these records lso through terraform in 50-app-alb 
+
+resource "aws_route53_record" "app_alb" {
+  zone_id = var.zone_id
+  name    = "*.app-dev.${var.domain_name}"
+  type    = "A"
+
+    # these are ALB DNS name and zone information 
+  alias {
+    name                   = module.alb.dns_name   # alb dns and zone id 
+    zone_id                = module.alb.zone_id
+    evaluate_target_health = false
+  }
+}
+
+createion completed
+ALB
+Listner
+default rule creation 
+Route 53 for ALB
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  --> join(),lookup(),length(), split(), etc interview question 
