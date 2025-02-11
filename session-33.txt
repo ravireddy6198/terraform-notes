@@ -250,7 +250,80 @@ we have one service is there in aws i.e.,
 what that service is doing 
 
 DB installations --> we just need to provide configurations
-DB upgrades 
+DB upgrades --> simple clicks
+DB snapshots
+DB cluster --> we can have replication controllers, high available, storage scalable 
+
+these guarantees given by aws , here also Db team is there but as compared to on premise in cloud db team have not much work
+
+creation of RDS service 
+================================
+
+got to RDS service 
+
+
+
+for mysql we have already one sg is there
+DB subnet group --> group of db subnets
+
+we need DB subnet group in RDS creation process 
+
+--> platoform engineers not included aws_db_subnet_group resource in module so we have to inform them like in your module not included this resource aws_db_subnet_group, so platform engineers understand the usage of the resource aws_db_subnet_group they discussed internally and they will inform  us to create this resource also in modules in next release like they are saying
+
+for now we can create the resource of aws_db_subnet_group in vpc.tf
+-------------------------------------------------------
+# this can be included in modules 
+resource "aws_db_subnet_group" "expense" {
+  name       = "${var.project_name}-${var.environment}"
+  subnet_ids = module.vpc.database_subnet_ids
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}"
+    }
+  )
+}
+--------------------------------------------------------
+in 00-vpc
+
+terraform init,
+terraform plan
+terraform apply  ( to get the resource of aws_db_subnet_group in aws so we can use it for RDS creation process ) 
+
+	RDS --> create database --> select mysql --> dont put check box Enable RDS Extended support ( aws will give you the support for RDS if mysql not giving support for us)--> Templates (free tier) --> give database name as expense-dev(DB instance identifier) --> Master username as root --> give Master password as ExpenseApp1 --> confirm password --> select our VPC (expense-vpc) --> select DB subnet group ( whatever we create in 'aws_db_subnet_group' throgh terraform ) --> select public access as no ( if we ant to access from Lpatop it is possible through VPN only )--> Existing VPC security group as our expense-dev-mysql sg --> AZ as 1a --> dont Enable Enhanced Monitoring ( charges incurred )  --> goto Database options give initial database name as transactions ( it is a schema )-->Backup dont enable automated backups ( charges incurred ) --> create database
+	
+	once databse created we will take the details from console
+	DB_HOST_URL : endpoint url
+	rootExpenseApp1
+	3306
+	
+	we can connect this RDS databse through bastion for that create sg for mysql accepting bastion ( we have already selected this sg in rds creation )
+	
+	in sg.tf
+	
+resource "aws_security_group_rule" "mysql_bastion" {
+  type              = "ingress"
+  from_port         = 3306
+  to_port           = 3306
+  protocol          = "tcp"
+  source_security_group_id = module.bastion_sg.sg_id
+  security_group_id = module.mysql_sg.sg_id
+}
+
+
+terraform apply
+
+-->once all set connect bastion host -->after connecting inside bastion -->install mysql client ( sudo dnf install mysql -y ) --> hit the end point of DB_HOST_URL ( mysql -h <end-point-url> -u root -pExpenseApp1--> now we are connected RDS ( mysql ) database through bastion it will appareed as mysql>--> give db commands like show databases ; it will appeared databses inside database
+
+	
+--> aws team how created this RDS service in background means they installed one ec2 instance and inside install mysql or any user db and whatever we provide the configurations in creation process they would take and create this RDS service through some automated scripts
+
+--> we have some vendors for maintaing the databses in the market they will also follow the same procedure of aws team for RDS creation but they created ec2 instance install mysql and maintain upgrades to decrease the cost of RDS service and they will charge some percentage from ours ( but it is not recommended they were not secure so goto RDS only maintained by aws )
+
+--> actually when the cloud comes it is an disadvantage to know how the services are created in the background in future generations dont know what the server is because of cloud
+
+--> while creation of RDS module give deletion_protection as false because when it is true through terraform we cannot delete the databse so we can give it as false
 
 
 
