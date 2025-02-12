@@ -44,7 +44,7 @@ module "vpn_sg" {
 
 creating resource aws_security_group_rule for VPN ( vpn_ssh, vpn_443 , vpn_943, vpn_1194) in sg.tf
 
---> we have to export pn sg_id value to ssm parameter store
+--> we have to export vpn sg_id value to ssm parameter store
 
 in parameter.tf
 
@@ -74,7 +74,7 @@ in aws also vpn service is there but we dont want to go for that service ( it is
 	no more VPN settings required  ( already all settings given in step 1 like yes and enter )
 	
 	--> so now all VPN server setup completed it is up on running
-		now we want vpn client software to connect the server
+		now we want vpn client software to connect the vpn server
 		download OpenVpn connect for windows software from 
 		
 		https://openvpn.net/client/client-connect-vpn-for-windows/
@@ -200,7 +200,7 @@ terraform apply
 now connect "ssh -i .pem openvpnas@<public_IP>" (laptop --> VPN instance ( it is VPN server))
 again it is asking some steps like
 
-1)	ssh -i .pem openvpnas@<public_IP>  --> do  yes, yes, enter again and again , yes, yes, yes, yes, set oopenvpn password as like 'OpenVpn@123', enter
+1)	ssh -i .pem openvpnas@<public_IP>  --> do  yes, yes, enter again and again , yes, yes, yes, yes, set oopenvpn password as like 'Openvpn@123', enter
 
 
 connected to vpn instance(VPN server)
@@ -209,7 +209,7 @@ now we have to connect the VPN server from OpenVPN client ( which is already ins
 
 open the client openvpnconnect software in laptop and get connected window appeared give url ( client UI url taken from cmd in step-2 )--> next--> apperaed import profile window (username : openvpn ) --> give password Openvpn@123--> select check box connect after import --> click IMPORT --> again it is asking password and give that --> now client is connected to server
 
-==> now we will get the default response in our laptop from ALB backend ( APP ALB ) through VPN ( check on browser to hit ALB DNS ( anything.app-dev.daws82s.online ) )
+==> now we will get the default response in our laptop from ALB backend ( APP ALB ) through VPN ( check on browser to hit ALB DNS ( http://backend.app-dev.hitaws82s.fun/ ) )
 
 ==> we can on and off the openvpn connect window because our laptop slow down  means that our all browsing requested goes to us VPN and --> amazon --> forward back to vpn --> laptop ( getting response ) so always stop when we are not used for VPN to connect APP ALB , our laptop may slowdown because of requests passing through VPN for ourbrowsing history
 
@@ -268,7 +268,7 @@ DB subnet group --> group of db subnets
 
 we need DB subnet group in RDS creation process 
 
---> platoform engineers not included aws_db_subnet_group resource in module so we have to inform them like in your module not included this resource aws_db_subnet_group, so platform engineers understand the usage of the resource aws_db_subnet_group they discussed internally and they will inform  us to create this resource also in modules in next release like they are saying
+--> platoform engineers not included aws_db_subnet_group resource in module so we have to inform them like in your module not included this resource aws_db_subnet_group, so platform engineers understand the usage of the resource aws_db_subnet_group they discussed internally and they will inform  us to create this resource also in modules in next release like they are saying, once they released we just do "terraform init -upgrade"
 
 for now we can create the resource of aws_db_subnet_group in vpc.tf
 -------------------------------------------------------
@@ -295,7 +295,8 @@ terraform apply  ( to get the resource of aws_db_subnet_group in aws so we can u
 	
 	once databse created we will take the details from console
 	DB_HOST_URL : endpoint url
-	rootExpenseApp1
+	root
+	ExpenseApp1
 	3306
 	
 	we can connect this RDS databse through bastion for that create sg for mysql accepting bastion ( we have already selected this sg in rds creation )
@@ -319,7 +320,7 @@ terraform apply
 	
 --> aws team how created this RDS service in background means they installed one ec2 instance and inside install mysql or any user db and whatever we provide the configurations in creation process they would take and create this RDS service through some automated scripts
 
---> we have some vendors for maintaing the databses in the market they will also follow the same procedure of aws team for RDS creation but they created ec2 instance install mysql and maintain upgrades to decrease the cost of RDS service and they will charge some percentage from ours ( but it is not recommended they were not secure so goto RDS only maintained by aws )
+--> we have some vendors for maintaing the databases in the market they will also follow the same procedure of aws team for RDS creation but they created ec2 instance install mysql and maintain upgrades to decrease the cost of RDS service and they will charge some percentage from ours ( but it is not recommended they were not secure so goto RDS only maintained by aws )
 
 --> actually when the cloud comes it is an disadvantage to know how the services are created in the background in future generations dont know what the server is because of cloud
 
