@@ -1,0 +1,170 @@
+
+
+																Session - 35
+															=====================
+															
+															
+															
+															
+															
+															
+															
+															
+															
+															
+new release
+=============
+1. remove old code
+2. download new code
+3. restart the server
+
+changes in existing servers ( vunna servers lo ney new versions ni update chestunnam ) ( this was followed in old days like on-premise setup for deployment )
+============================
+20 servers --> downtime should be there
+
+connect to the servers using ansible
+fetch the ip using dynamic inventory
+run ansible playbook against all the servers
+
+another method (less downtime ) ( here not using existing servers ) ( this setup used in the cloud now a days )
+============================
+provision new instance(server)
+configure it using ansible
+	connect to it
+	run the playbook
+
+stop the instance
+take AMI
+
+update auto scaling group --> 5 old version application instances
+Rolling update :
+provision one new instance with new AMI, delete one old version server
+provision second new instance with new AMI, delete second old version server
+.
+.
+provision fifth new instance with new AMI, delete fifth old version server
+
+--------------------------------------------------------------------------------------
+Launch template --> instance creation inputs
+----------------
+AMI
+SG ID
+Subnet
+Which target group
+
+
+ --> 60-backend instances creation through terraform :
+ ========================================================
+
+create all files 
+main.tf
+variables.tf
+locals.tf
+data.tf
+
+now we have a doubt once all set instances getting created after how to connecting the instances and  how we can connect the ansible ?
+
+for that we can use provisioners (remote-excec)
+
+generally ansible follows push based architecture
+now we can see the pull based architecture
+
+generally ansible server playbooks ni github lo nunchi clone chesukuni nodes lo ki play-books run chestundhi ( in push based )
+
+in pull based nodes itself git lo nunchi pull chesukuni play-books ni run chestundhi ( meaning in nodes we have to install ansible server and ansible pull directory from github ) because this is dynamic environment means oka new instance ni create chesi ansible install chesi githun lo nunchi code ni pull chesukuni playbooks ni runcheyadam, but kotta server changes vochinapudu play book lo em cheyaali malli ?
+
+playbook lo kotta changes ni github ki push chesi oka kotta instance create chesi andhulo ansible install chesi playbook ni github lo nunchi clone chesukuni play books ni run cheyaali
+
+this whole entire process shoulb be taken care by devops engineers do and not maintaining any ansible servers in pull based atleast for applications
+
+ipudu backend instance ki connect avvalantey there is something called null resource
+
+null resource :
+------------------
+null resource is like reasource but it will not create any resources because it is null it is useful to connect to the instances for provisioning ( means for provisioners ) it has a special attribute called triggers so we can trigger this null resource whenever there is some change in instance id and whatever you require
+
+https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource
+
+
+
+
+
+null resource will not create any new resource, it is used to connect to the instances, copy the scripts, execute the scripts through provisioners. It has a trigger attribute to take actions when something is changed like instance id.
+
+terraform variables --> shell variables --> ansible variables
+
+--> ansible runs first dependencies after runs all tasks
+
+oka backend instance ni create cheyaali,--> aa instance lo ansible dwaara backend configure cheyaali ( node js configuration ),-->taruvata aa instance ni stop cheyaali --> stop chesi aa instance ki ami teesukovaali -->aa ami ni use chesukoni autoscaling group to no. of instances ni traffic batti manam increase or decrease chestu veltaam  ( this is plan of yesterdays class )
+
+backend configure chesinaam taruvata vpn ki connect ayyam apudu mana IP VPN Ip laaga choopistundhi taruavata mobaxterm lo backend private IP tessukuni backend server ki connect ayi backend running status ni check chesaam and also 
+ 
+ curl http://localhost:8080/health    --> to see the health check ( once this status comes means backend is running )
+
+nslookup mysql DNS ni kooda check chesaam
+ippativaraku manam mana lapttop lo terraform dwaara VPN ki connect ayi mana laptop lo terraform apply kotti backend ni setup chesaam without VPN not possible why because manam mana laptop lo nunchi terraform apply kottinaam, but backend server private kaabati vpn ni use chesaam apudu mana IP aws ki vpn IP laaga choopistundhi so manam vpn dwaara backend ki connect ayi cheyochu terraform appli ani mana laptop lo kotti,  but manam bastion host dwaara kooda connect ayi bastion host lo terraform install chesi backend ni run cheyochu
+
+netstat -lnto backend
+systemctl status backend
+
+
+Note : null resource anedhi aws lo elaanti resource ni create cheyadhu it will trigger whenever the instance id changes, null resource will connect the instance and copy the backend.sh file and provision the backend.sh file into backend server please refer below code
+
+manam vpn chesi edhi search chesinaa adhi vpn network dwaara maatramey veltindhi mana home wifi network laaga choopinchadhu manam direct ga backend private IP ni browser lo check cheyochu because vpn connect ayi vunnam kaabatti aws network lo vpn IP nunchi backend ki connect ayinattu meaning
+
+vpn IP --> backend private IP --> browser lo get transaction ni choodochu whenever you added some transactions in the database
+
+hit the api from browser
+
+http://<private-IP-backend>:8080/transaction        to see the get info
+
+
+
+
+
+
+
+resource "null_resource" "backend" {
+  # Changes to any instance of the instance requires re-provisioning
+  triggers = {
+    instance_id = aws_instance.backend.id # whenever instance id changes we have to trigger this
+  }
+
+  # Bootstrap script can run on any instance of the cluster
+  # So we just choose the first in this case
+  connection {
+    host = aws_instance.backend.private_ip
+    type = "ssh"
+    user = "ec2-user"
+    password = "DevOps321"
+  }
+
+  provisioner "file" {
+    source =  "backend.sh"
+    destination = "/tmp/backend.sh"
+  }
+
+  provisioner "remote-exec" {
+    # Bootstrap script called with private_ip of each node in the cluster
+    inline = [
+      "chmod +x /tmp/backend.sh",
+      "sudo sh /tmp/backend.sh ${var.environment}"
+    ]
+  }
+}
+
+
+1. instance creation
+2. connect to server using connection block
+3. copy the shell script into server using file provisioner block
+	install ansible
+	ansible-pull -i localhost -U URL main.yaml -e component=backend -e environment=dev
+4. remote-exec
+	chmod +x backend.sh
+	sudo sh backend.sh
+5. ansible configures backend
+6. stop instance
+7. take the AMI
+8. create target group
+9. launch template input--> AMI
+10. ASG -->> input launch template

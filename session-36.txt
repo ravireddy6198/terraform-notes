@@ -1,0 +1,275 @@
+
+
+																Session -36
+															==================
+
+API's gurinchi explanation
+
+
+
+
+
+LB Auto scaling is very important for interviews it will comee again and again docker and kubernetes
+
+--> what is the plan of previous class means
+
+	oka backend instance ni create cheyaali,--> aa instance lo ansible dwaara backend configure cheyaali ( node js configuration ),-->taruvata aa instance ni stop cheyaali --> stop chesi aa instance ki ami teesukovaali -->aa ami ni use chesukoni autoscaling group to no. of instances ni traffic batti manam increase or decrease chestu veltaam  ( this is plan of yesterdays class )
+	
+	
+	
+--> API gurinchi explanation
+
+manam vpn chesi edhi search chesinaa adhi vpn network dwaara maatramey veltindhi mana home wifi network laaga choopinchadhu manam direct ga backend private IP ni browser lo check cheyochu because vpn connect ayi vunnam kaabatti aws network lo vpn IP nunchi backend ki connect ayinattu meaning
+
+vpn IP --> backend private IP --> browser lo get transaction ni choodochu whenever you added some transactions in the database
+
+hit the api from browser
+
+http://<private-IP-backend>:8080/transaction        to see the get info
+
+--> by default terraform dependency vuntey order wise rources ni create chestundhi ( like sg for ec2 ) adhey depency lekuntey parallel ga anni resources okey saari create chestundhi 
+
+--> now we have to stop the instance for to take the ami of the backend
+
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_instance_state
+
+in main.tf in 60-backend
+
+resource "aws_ec2_instance_state" "backend" {
+  instance_id = aws_instance.backend.id
+  state       = "stopped"
+  depends_on = [ null_resource.backend ] # here first terrfoem execues null resource and after that it executes the  aws_ec2_instance_state
+}
+
+--> now we have to take the ami of backend
+
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ami_from_instance
+
+resource "aws_ami_from_instance" "backend" {
+  name               = local.resource_name
+  source_instance_id = aws_instance.backend.id
+  depends_on = [ aws_ec2_instance_state.backend ] # once the backend instance completely stopped then only we have to take the ami
+}
+
+--> once taken the ami we have to delete the instance 
+
+#once taken the ami stop the backend instance 
+resource "null_resource" "backend" {
+  provisioner "local-exec" {     # we have not perform any action inside the server we just run the command in aws cli
+    command = "aws ec2 terminate-instances --instance-ids ${aws_instance.backend.id}"  # this is aws cli command to delete the instance 
+  }
+  depends_on = [aws_ami_from_instance.backend]  # it is depending on the ami creation completed
+}
+
+
+Note : 
+---------
+--> How terraform knows next recreation of ec2 instance for any changes in the backend means backend lo changes vochinapudu manam kotta server ni launch chestaam paata server ni teesestaam so ikkada terraform elaa identify chestundhi new instance create cheyaali ani taruvata null resource trigger avvali ani because once the instance stopped state file stores the information like instance_id and state and again if we perform terraform apply again terraform identifies the state in tf state file ( state = "destored" ) so terraform recreate the instance based on the state attribute in state file refer below
+--------------------------------------------------------------------------------------------------
+{
+  "resources": [
+    {
+      "type": "aws_instance",
+      "name": "backend",
+      "instances": [
+        {
+          "id": "i-xxxxxxxxxxxxx",  // Instance ID (still here temporarily)
+          "private_ip": "10.0.0.5",  // Instance private IP
+          "status": "destroyed",     // Status marked as destroyed
+          "ami": "ami-xxxxxxxxxxxxx",
+          "tags": { "Name": "backend-instance" }
+        }
+      ]
+    }
+  ]
+}
+-----------------------------------------------------------------------------------------------------------
+
+--> now we are able to see the AMI in  the AMIs section in ec2 console in aws (if we stop the terraform apply in the middle when we rerun again a new instance being created and new AMI also created old AMI deleted 
+
+AMI --> give it to the instances in target group --> Autoscaling (increse aor decrease based on conditions )
+
+creation of target group for Auto scalig :
+=============================================
+--> name expense-dev-backend -->port http 8080 --> select VPC -->in health checks /health -->healthy threshold 2,2,5,10,200-299-->next -->now creating a target group ( it is empty actually )
+
+Launch templates creation :
+============================
+
+create launch templates --> name expense-dev-backend --> select AMI --> goto My AMIs (owned by me )--> slect that AMI backend AMI -->instance type t3.micro -->keay pair ( dont include in launch template ) --> select subnet private subnet -1a --> select sg expense-dev-backend sg --> create launch template 
+
+Launch templates console section showing "expense-dev-backend"
+
+
+Auto scaling groups creation through console :
+===============================================
+
+goto Auto scaling groups section --> create Autoscaling group --> give name as expense-dev-backend -->select launch template as expense-dev-backend --> next -->in network select our vpc --> availability zone and subnets (expense-dev-private-us-east-1a, expense-dev-private-us-east-1b) --> next --> in load balancing select attach to an existing load balancer -->select Existing Load balancer target groups as expense-dev-backend|http --> last health check grace period as 60 sec for small application (instance launch ayyaka up avvadaniki patte time taruvata LB hit chestundhi ee target group ni )  --> next--> in scaling min 1 --> max 10 --> next -->next -->next -->finally create auto scaling group
+
+now it is showing in the instances one backend instance is running (min 1 desired capacity in auto scaling group )
+
+--> Auto scaling groups --> open expense-dev-backend --> Dynamic scaling policy --> target value = 70 ( CPU utilization ) --> instance warm up ( 60 sec ) -->create
+
+--> input for autoscaling -- Launch template
+	input for  Launch template -- AMI
+--> AmI ni launch template ki istey aa launch template ni  auto scaling ki mention chestaam ea ea target group lo mention cheyaali ani 
+
+backend.app-dev.daws82s.online ani evaryna hit chestey --> adhi backend target group ki vellali
+analytics.app-dev.daws82s.online ani evaryna hit chestey --> adhi analytics target group ki vellali
+
+--> goto LB section open LB --> below goto Listners and rules section open 1 rule --> add rule -->name as backend -->next --> add condition choose host header and insert host header as backend.app-dev.daws82s.online--> confirm -->next --> select target group as expense-dev-backend -->next -->Listner rules prority for backend is 10 --> create 
+
+
+-->now we can check the backend.app-dev.daws82s.online in browser we will get the default response 
+
+once we allowed the sg rule 
+
+#backend should accept connection from APP-ALB for port 8080( for the developers )
+resource "aws_security_group_rule" "backend_app_alb" {
+  type              = "ingress"
+  from_port         = 8080
+  to_port           = 8080
+  protocol          = "tcp"
+  source_security_group_id = module.app_alb_sg.sg_id
+  security_group_id = module.backend_sg.sg_id
+}
+
+--> now we can check the backend.app-dev.daws82s.online/transaction in browser we will get the backend response 
+
+creatio of auto scaling through terraform :
+=================================================
+first creation of target group and health check for target group  :
+---------------------------------------
+in main.tf in 60-backend
+
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_target_group
+
+resource "aws_lb_target_group" "backend" {
+  name     = local.resource_name
+  port     = 8080
+  protocol = "HTTP"
+  vpc_id   = local.vpc_id
+  
+  health_check {
+    healthy_threshold = 2
+    unhealthy_threshold = 2
+    timeout = 5
+    protocol = "HTTP"
+    port = 8080
+    path = "/health"
+    matcher = "200-299"
+    interval = 10
+  }
+}
+
+--> now target group ready andhloki instances ni evaru place chetaaru auto scaling group place chestundhi 
+
+Launch template creation :
+------------------------------
+
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/launch_template
+
+resource "aws_launch_template" "backend" {
+  name = local.resource_name
+
+  image_id = aws_ami_from_instance.backend.id
+
+  instance_initiated_shutdown_behavior = "terminate"
+
+  instance_type = "t3.micro"
+  update_default_version = true 
+
+  vpc_security_group_ids = [local.backend_sg_id]
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Name = local.resource_name
+    }
+  }
+
+}
+
+
+creation of auto scaling group :
+----------------------------------
+
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/autoscaling_group
+
+resource "aws_autoscaling_group" "backend" {
+  name                      = local.resource_name
+  max_size                  = 4
+  min_size                  = 2
+  health_check_grace_period = 60
+  health_check_type         = "ELB"
+  desired_capacity          = 2
+  target_group_arns = [aws_lb_target_group.backend.load_balancer_arn]
+  launch_template {
+    id = aws_launch_template.backend.id
+    version = "$Latest"
+  }
+  vpc_zone_identifier       = [local.private_subnet_ids]
+
+   instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+    }
+    triggers = ["launch_template"] # here launch template changes it will trigger the new instances and old instances are deleted 
+  }
+
+  tag {
+    key                 = "Name"
+    value               = local.resource_name
+    propagate_at_launch = true
+  }
+
+  timeouts {
+    delete = "5m"
+  }
+
+  tag {
+    key                 = "Project"
+    value               = "expense"
+    propagate_at_launch = false
+  }
+   tag {
+    key                 = "Environment"
+    value               = "dev"
+    propagate_at_launch = false
+  }
+}
+
+
+creation of Listener rule :
+------------------------------
+
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_listener_rule
+
+
+resource "aws_lb_listener_rule" "backend" {
+  listener_arn = data.aws_ssm_parameter.app_alb_listner_arn.value
+  priority     = 10
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+ 
+
+  condition {
+    host_header {
+      values = ["backend.app-${var.environment}.${var.domain_name}"]
+    }
+  }
+}
+
+Note : kottaga ami create ayina prati saari launch template kotta version raavali idhi vochinapudu auto scaling group anedhi refresh avvali 
+-------
+prati relese ki we have to perform terraform apply so that allaparameter gets updated ( AMI, Auto scaling group etc )
+
+
+ 
+

@@ -1,0 +1,7 @@
+
+
+
+general questions and doubts
+
+--> how backend apis exposed to public or third party apps for getting results with respect to devops ?
+--> LB Auto scaling is very important for interviews it will comee again and again docker and kubernetes

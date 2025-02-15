@@ -1,0 +1,158 @@
+
+															Session -34
+														======================
+														
+														
+														
+														
+														
+
+we have to give user data while configuring the vpn in aws for that create file under 30-vpn
+user-data.sh file
+in this shell script file we have included the admin user and password and reroute_gw, reroute_dns ( please see the below link)
+
+https://openvpn.net/as-docs/aws-ec2.html#entering-user-data-
+
+admin_user=openvpn
+admin_pw=Openvpn@123
+reroute_gw=1
+reroute_dns=1
+
+no need to access the vpn like ( not required for ssh -i .pem openvpnas@IP and get to configure the username and password like that configuration not required when we are using user_data )
+
+in vpn.tf we will get the public ip of vpn after terraform apply
+
+output "vpn_ip" {
+  value = aws_instance.vpn.public_ip
+}
+
+and also paasses the attribute in vpn.tf (aws_instance "openvpn") resource
+
+user_data = file("user-data.sh")
+
+so that file function read the user-data.sh and give the details to an ec2-instance (VPN - instance) and finally all the setup completed for vpn instance
+
+terraform init
+terraform apply
+
+finally get the public_ip of VPN as output
+take that IP and connect the client of openvpn software on our laptop --> give url as https://<IP-of-output>:943 -->accept --> give 
+admin_user=openvpn
+admin_pw=Openvpn@123
+--> check second boxes --> click import -->give password again -->finally client is connected to openvpn server ( logically our laptop is in the publicsubnet of vpc in us-east-1 ) so we can connect the backend through vpn in aws network from our home laptop
+
+
+RDS creation through terraform :--
+====================================
+
+https://github.com/terraform-aws-modules/terraform-aws-rds
+
+under 40-RDS
+copy the module code in main.tf (from above link )
+variables.tf
+locals.tf
+data.tf 
+
+export the database_subnet_group_name resource to ssm in parameter.tf under vpc folder
+
+
+resource "aws_ssm_parameter" "database_subnet_group_name" {
+  name  = "/${var.project_name}/${var.environment}/database_subnet_group_name"
+  type  = "String"
+  value = aws_db_subnet_group.expense.name
+}
+
+
+deletion_protection = false  # in projects it is true always no one deleted the db accidentally in console
+
+once we created all files like above docs/aws-ec2
+
+terraform init
+terraform plan
+terraform apply
+
+RDS created but we can add the sg rule for VPN as well
+
+in sg.tf
+
+ # we creating this rule for mysql accepting the request from vpn 
+resource "aws_security_group_rule" "mysql_vpn" {
+  type              = "ingress"
+  from_port         = 3306
+  to_port           = 3306
+  protocol          = "tcp"
+  source_security_group_id = module.vpn_sg.sg_id
+  security_group_id = module.mysql_sg.sg_id
+}
+
+again terraform apply
+
+now RDS mysql database ready
+
+usually as of now we can conncet mysql through mysql client ( dnf install mysql -y) in linux servers
+now i want connect the database through vpn from my laptop for that we can install any mysql client softwares like mysql workbench , HeidiSQL etc
+
+from that client we can connect the mysql databse through vpn but here the mysql endpoint is not proper to remeber for that we can map the endpoint with route53 records as CNAME
+
+
+A --> IP
+CNAME --> mysql endpoints
+
+for that CNAME also we can create the resource under 40-rds in main.tf
+
+refer link
+
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record
+
+
+resource "aws_route53_record" "cname-mysq" {
+  zone_id = var.zone_id
+  name    = "${local.resource_name}.${var.domain_name}"
+  type    = "CNAME"
+  ttl     = 1
+
+ records = [module.db.db_instance_address]
+}
+
+
+terraform init
+terraform plan
+terraform apply
+
+
+
+Note :
+------------
+in rds main.tf 
+
+ skip_final_snapshot = true # by defualt false means aws automatically create a snapshot and backup we will always delete through manually if not delete charges incurred 
+ 
+ while deleting through console also aws will automatically create a snapshot we have to delete that one also otherwise charges incurred because we are using testing purpose only the rds
+
+
+for i in $(ls -dr *); do cd $i; terraform apply -auto-approve; cd ..; done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
